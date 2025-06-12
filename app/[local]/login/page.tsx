@@ -34,15 +34,22 @@ export default async function Login({
   const session = (await supabase.auth.getSession()).data.session
 
   if (session) {
-    const { data: homeWorkspace, error } = await supabase
+    const { data: workspaces, error } = await supabase
       .from("workspaces")
       .select("*")
       .eq("user_id", session.user.id)
       .eq("is_home", true)
-      .single()
+      .limit(1)
+
+      console.log("Session User ID:", session.user.id)
+      console.log("workspaces result:", workspaces)
+      console.log("supabase query error:", error)
+
+    
+    const homeWorkspace = workspaces?.[0]
 
     if (!homeWorkspace) {
-      throw new Error(error.message)
+      throw new Error(error?.message || "No home workspace found.")
     }
 
     return redirect(`/${homeWorkspace.id}/chat`)
@@ -65,20 +72,22 @@ export default async function Login({
       return redirect(`/login?message=${error.message}`)
     }
 
-    const { data: homeWorkspace, error: homeWorkspaceError } = await supabase
-      .from("workspaces")
-      .select("*")
-      .eq("user_id", data.user.id)
-      .eq("is_home", true)
-      .single()
+    const { data: workspaces, error: homeWorkspaceError } = await supabase
+  .from("workspaces")
+  .select("*")
+  .eq("user_id", data.user.id)
+  .eq("is_home", true)
+  .limit(1)
 
-    if (!homeWorkspace) {
-      throw new Error(
-        homeWorkspaceError?.message || "An unexpected error occurred"
-      )
-    }
+const homeWorkspace = workspaces?.[0]
 
-    return redirect(`/${homeWorkspace.id}/chat`)
+if (!homeWorkspace) {
+  throw new Error(
+    homeWorkspaceError?.message || "An unexpected error occurred"
+  )
+}
+
+return redirect(`/${homeWorkspace.id}/chat`)
   }
 
   const getEnvVarOrEdgeConfigValue = async (name: string) => {
